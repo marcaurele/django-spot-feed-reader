@@ -17,4 +17,4 @@ round world trip (http://come-away-with.me).
 
 Author
 ======
-Marc-Aurèle Brothier - marc-aurele :at: brothier :dot: org
+Marc-Aurèle Brothier - marc-aurele :at: peakxl :dot: xcom
