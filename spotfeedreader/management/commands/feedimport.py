@@ -2,21 +2,33 @@ import datetime
 import urllib2
 import types
 
-from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.core.management.base import CommandError
 from django.utils import simplejson as json
 
 from spotfeedreader.models import SpotFeed, SpotMessage
 
+URL_LATEST = "https://api.findmespot.com/spot-main-web/consumer/rest-api/2.0/public/feed/%s/latest.json"
+URL_MESSAGE = "https://api.findmespot.com/spot-main-web/consumer/rest-api/2.0/public/feed/%s/message.json"
+
 class Command(BaseCommand):
     help = 'Import the feed data from the feed id defined in the settings under SPOT_FEED_ID'
     
     def handle(self, *args, **kwargs):
+    	# Get all active feeds that we will process
 		if 'latest' in args:
-			url = "https://api.findmespot.com/spot-main-web/consumer/rest-api/2.0/public/feed/%s/latest.json" % settings.SPOT_FEED_ID
+			url = URL_LATEST
 		else:
-			url = "https://api.findmespot.com/spot-main-web/consumer/rest-api/2.0/public/feed/%s/message.json" % settings.SPOT_FEED_ID
+			url = URL_MESSAGE
+		
+		feeds = SpotFeed.objects.filter(active__exact=True)
+		if feeds:
+			for feed in feeds:
+				self.fetch_feed(url % feed.feed_id)
+		else:
+			self.stdout.write('No active feed to fetch yet')
+    
+    def fetch_feed(self, url):
 		self.stdout.write('Fetching feed at %s\n' % url)
 		data = urllib2.urlopen(url)
 		self.stdout.write('Response received\n')
@@ -36,10 +48,10 @@ class Command(BaseCommand):
 			else:
 				self.save_spot_message(obj['response']['feedMessageResponse']['messages']['message'])
 		else:
-			self.stderr.write('Error\n')
+			self.stderr.write('Error, no data\n')
 		
     def save_spot_message(self, message):
-		self.stdout.write('[%s] %s : lat=%f, lon=%f\n' % (
+		self.stdout.write('[%s] %s : LAT=%f, LON=%f\n' % (
 			message['id'],
 			message['unixTime'],
 			message['latitude'],
@@ -47,14 +59,10 @@ class Command(BaseCommand):
 		))
 		try:
 			spotMessage = SpotMessage.objects.get(spot_message_id=message['id'])
-			self.stdout.write('Skip\n')
+			self.stdout.write('Skip existing with id=%s\n' % message['id'])
 		except SpotMessage.DoesNotExist:
 			if not message.has_key('batteryState'):
 				message['batteryState'] = None
-			if not message.has_key('altitude'):
-				message['altitude'] = 0
-			if not message.has_key('hidden'):
-				message['hidden'] = 0
 			if not message.has_key('modelId'):
 				message['modelId'] = None
 			
@@ -70,11 +78,8 @@ class Command(BaseCommand):
 				model = message['modelId'],
 				show_custom_msg = message['showCustomMsg'],
 				message_detail = message['messageDetail'],
-				altitude = message['altitude'],
 				battery = message['batteryState'],
-				hidden = message['hidden']
 			)
-			self.stdout.write('Create\n')
-			self.stdout.write('%s\n' % spotMessage)
 			spotMessage.save()
+			self.stdout.write('Created %s\n' % spotMessage)
 
