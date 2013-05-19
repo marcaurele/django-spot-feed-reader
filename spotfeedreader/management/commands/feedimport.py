@@ -5,6 +5,7 @@ import types
 from django.core.management.base import BaseCommand
 from django.core.management.base import CommandError
 from django.utils import simplejson as json
+from django.utils.timezone import utc
 
 from spotfeedreader.models import SpotFeed, SpotMessage
 
@@ -31,7 +32,6 @@ class Command(BaseCommand):
     def fetch_feed(self, url):
 		self.stdout.write('Fetching feed at %s\n' % url)
 		data = urllib2.urlopen(url)
-		self.stdout.write('Response received\n')
 		obj = json.loads( data.read() )
 		if 'feedMessageResponse' in obj['response']:
 			# Save the feed information first, only once
@@ -44,34 +44,40 @@ class Command(BaseCommand):
 			if isinstance(obj['response']['feedMessageResponse']['messages']['message'], types.ListType):
 				# Iterate on all message to save the new ones if from "message"
 				for message in obj['response']['feedMessageResponse']['messages']['message']:
-					self.save_spot_message(message)
+					self.save_spot_message(spotFeed, message)
 			else:
-				self.save_spot_message(obj['response']['feedMessageResponse']['messages']['message'])
+				self.save_spot_message(spotFeed, obj['response']['feedMessageResponse']['messages']['message'])
 		else:
 			self.stderr.write('Error, no data\n')
 		
-    def save_spot_message(self, message):
-		self.stdout.write('[%s] %s : LAT=%f, LON=%f\n' % (
+    def save_spot_message(self, spotFeed, message):
+		self.stdout.write('[%s] %s : LAT=%f, LON=%f, %s\n' % (
 			message['id'],
 			message['unixTime'],
 			message['latitude'],
 			message['longitude'],
+			datetime.datetime.utcfromtimestamp(message['unixTime']).replace(tzinfo=utc)
 		))
 		try:
-			spotMessage = SpotMessage.objects.get(spot_message_id=message['id'])
+			spotMessage = SpotMessage.objects.get(message_id=message['id'])
 			self.stdout.write('Skip existing with id=%s\n' % message['id'])
 		except SpotMessage.DoesNotExist:
+			if not message.has_key('messageDetail'):
+				message['messageDetail'] = None
+			if not message.has_key('showCustomMsg'):
+				message['showCustomMsg'] = True
 			if not message.has_key('batteryState'):
 				message['batteryState'] = None
 			if not message.has_key('modelId'):
 				message['modelId'] = None
 			
 			spotMessage = SpotMessage(
-				spot_message_id = message['id'],
+				feed = spotFeed,
+				message_id = message['id'],
 				messenger_id = message['messengerId'],
 				messenger_name = message['messengerName'],
 				unix_time = message['unixTime'],
-				date_time = datetime.datetime.utcfromtimestamp(message['unixTime']),
+				date_time = datetime.datetime.utcfromtimestamp(message['unixTime']).replace(tzinfo=utc),
 				message_type = message['messageType'],
 				latitude = str(message['latitude']),
 				longitude = str(message['longitude']),

@@ -9,7 +9,7 @@ class SpotFeed(models.Model):
 		(False, 'no'),
 	)
 	# Feed ID
-	feed_id = models.CharField('feed id', max_length=128, db_index=True)
+	feed_id = models.CharField('feed id', max_length=128, db_index=True, unique=True)
 	# Status on/off if the feed should be retrieved
 	active = models.BooleanField('fetch data feed?', default=True, db_index=True, choices=ACTIVE_CHOICES)
 	# Date when imported
@@ -27,7 +27,7 @@ class SpotFeed(models.Model):
 		verbose_name = 'spot feed'
 	
 	def __unicode__(self):
-		return '%d: %s - %s' % (
+		return '[%d] %s - %s' % (
 			self.id,
 			self.name,
 			self.feed_id,
@@ -48,7 +48,7 @@ class SpotMessage(models.Model):
 	# Unix time of spot message
 	unix_time = models.IntegerField('unix timestamp', db_index=True)
 	# Date time value of the unix timestamp
-	date_time = models.DateTimeField('date time', db_index=True)
+	date_time = models.DateTimeField('date time UTC', db_index=True)
 	# Message type
 	message_type = models.CharField('message type', max_length=32)
 	# Latitude position
@@ -58,9 +58,9 @@ class SpotMessage(models.Model):
 	# Spot device model name
 	model = models.CharField('spot device model', max_length=32, blank=True, null=True)
 	# showCustomMessage field
-	show_custom_msg = models.BooleanField('show custom message')
+	show_custom_msg = models.BooleanField('show custom message', default=True)
 	# Message detail
-	message_detail = models.TextField('message detail')
+	message_detail = models.TextField('message detail', blank=True, null=True)
 	# Altitude
 	# NOT IN THE FEED ANYMORE as of 06.05.2013
 	#altitude = models.IntegerField('altitude', default=0)
@@ -74,4 +74,6 @@ class SpotMessage(models.Model):
 	class Meta:
 		verbose_name = 'spot message'
 	
+	def __unicode__(self):
+		return '[%d] %d - %d' % (self.id, self.feed.id, self.message_id)
 

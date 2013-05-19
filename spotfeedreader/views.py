@@ -59,7 +59,7 @@ def spot_message_as_json(request, nb_of_points=0):
 			points = SpotMessage.objects.filter(messenger_id__exact='0-8197053').order_by('-unix_time')[:nb_of_points]
 	
 	points_data = serializers.serialize('json', points, fields=(
-		'spot_message_id','unix_time','longitude','latitude','message_type',
+		'message_id','unix_time','longitude','latitude','message_type',
 		))
 	#data = serializers.serialize('json', object ,fields=('titi','toto',))
 	response = HttpResponse('var spot_message_list = %s;' % points_data);

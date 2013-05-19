@@ -11,6 +11,6 @@ admin.site.register(SpotFeed, SpotFeedAdmin)
 
 
 class SpotMessageAdmin(admin.ModelAdmin):
-	list_display = ('id', 'message_id', 'date_time', 'message_type', 'latitude', 'longitude', 'created_date',)
+	list_display = ('id', 'feed', 'message_id', 'date_time', 'message_type', 'latitude', 'longitude', 'created_date',)
 
 admin.site.register(SpotMessage, SpotMessageAdmin)
