@@ -13,7 +13,7 @@ URL_LATEST = "https://api.findmespot.com/spot-main-web/consumer/rest-api/2.0/pub
 URL_MESSAGE = "https://api.findmespot.com/spot-main-web/consumer/rest-api/2.0/public/feed/%s/message.json"
 
 class Command(BaseCommand):
-    help = 'Import the feed data from the feed id defined in the settings under SPOT_FEED_ID'
+    help = 'Import all data feed from SpotFeed objects. Add "latest" to get only the latest message.'
     
     def handle(self, *args, **kwargs):
     	# Get all active feeds that we will process
